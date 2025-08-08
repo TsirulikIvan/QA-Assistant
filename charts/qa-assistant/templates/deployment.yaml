@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qa-assistant
+  namespace: assistant
+  labels:
+    app: gik-bot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qa-assistant
+  template:
+    metadata:
+      labels:
+        app: qa-assistant
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "80"
+        prometheus.io/path: "/metrics"
+    spec:
+      imagePullSecrets:
+        - name: gitlab-regcred
+      containers:
+        - name: qa-assistant
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: [ "granian" ]
+          args:
+            - "--factory"
+            - "gik_bot.app.main:create_app"
+            - "--interface"
+            - "asgi"
+            - "--host"
+            - "0.0.0.0"
+            - "--port"
+            - "{{ .Values.backend.port }}"
+            - "--workers"
+            - "{{ .Values.backend.workers | quote }}"
+          ports:
+            - containerPort: {{ .Values.backend.port }}
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: gik-bot-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: gik-bot-secrets
+                  key: POSTGRES_PASSWORD
+            - name: TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: gik-bot-secrets
+                  key: TOKEN
+            - name: URL
+              valueFrom:
+                configMapKeyRef:
+                  name: assistant-config
+                  key: URL
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: assistant-config
+                  key: PORT
+            - name: USE_CALLBACK
+              valueFrom:
+                configMapKeyRef:
+                  name: assistant-config
+                  key: USE_CALLBACK
+            - name: POSTGRES_DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: assistant-config
+                  key: POSTGRES_DB_NAME
+            - name: DB_SCHEMA
+              valueFrom:
+                configMapKeyRef:
+                  name: assistant-config
+                  key: DB_SCHEMA
+            - name: POSTGRES_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: assistant-config
+                  key: POSTGRES_HOST
+            - name: POSTGRES_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: assistant-config
+                  key: POSTGRES_PORT
+            - name: POSTGRES_DSN
+              value: "postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB_NAME)"
+            - name: DATABASE_URL
+              value: "postgresql+asyncpg://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB_NAME)"
+          volumeMounts:
+            - name: gik-bot-logs
+              mountPath: /var/log/gik-bot
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+      volumes:
+        - name: gik-bot-logs
+          emptyDir:
+            sizeLimit: 100Mi
