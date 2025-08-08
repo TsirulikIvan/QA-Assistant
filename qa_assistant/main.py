@@ -24,7 +24,9 @@ async def lifespan(app: fastapi.FastAPI):
     dp.stop_polling()
     await pool.close()
 
+
 app = fastapi.FastAPI(title="QA Assistant", lifespan=lifespan)
+
 
 @app.get("/health")
 async def healcheck():
