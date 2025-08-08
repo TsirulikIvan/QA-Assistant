@@ -1,0 +1,23 @@
+bot:
+  token: ""
+  useCallbackAPI: "false"
+
+postgres:
+  db:
+    dbName: "assistant.public"
+    dbSchema: "assistant.public"
+    dbHost: "localhost"
+    dbPort: "5432"
+  auth:
+    postgresUser: ""
+    postgresPassword: ""
+
+image:
+  repository: ""
+  tag: ""
+  pullPolicy: "always"
+
+backend:
+  workers: ""
+  url: ""
+  port: ""
